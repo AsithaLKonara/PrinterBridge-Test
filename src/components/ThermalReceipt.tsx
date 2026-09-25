@@ -149,14 +149,18 @@ const ThermalReceipt = forwardRef<HTMLDivElement, ThermalReceiptProps>(
           {/* Dummy Barcode Area */}
           <div className="mt-4 flex flex-col items-center justify-center">
             <div className="w-48 h-12 bg-black flex space-x-1 p-1">
-               {/* Simulating barcode bars with different widths */}
-               {[...Array(30)].map((_, i) => (
-                 <div 
-                   key={i} 
-                   className="bg-white h-full" 
-                   style={{ width: `${Math.random() * 3 + 1}px` }}
-                 />
-               ))}
+               {/* Simulating barcode bars deterministically to prevent hydration mismatch */}
+               {[...Array(30)].map((_, i) => {
+                 // Deterministic pseudo-random width between 1 and 4
+                 const width = (Math.abs(Math.sin(i * 12.345)) * 3) + 1;
+                 return (
+                   <div 
+                     key={i} 
+                     className="bg-white h-full" 
+                     style={{ width: `${width}px` }}
+                   />
+                 );
+               })}
             </div>
             <span className="mt-1 text-[10px] tracking-[0.2em]">{data.orderNumber.replace(/[^0-9]/g, '')}</span>
           </div>
