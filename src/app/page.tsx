@@ -18,10 +18,6 @@ export default function Home() {
     addLog("Step 1: Initiating print process (v2.0.0 architecture)...");
     setPrinting(true);
     
-    // We import escpos dynamically or just use it if it's available.
-    // The user's guide says import { NodePrintClient, escpos } from "@asithakonara/node-print-client";
-    // We'll import it at the top of the file.
-    
     try {
       addLog("Step 2: Connecting to bridge service...");
       await printerClient.connect();
@@ -30,36 +26,28 @@ export default function Home() {
       const printers = await printerClient.printers.list();
       
       if (!printers || printers.length === 0) {
-        addLog("Step X: No printers found on the bridge.");
-        throw new Error("No printers found.");
+        addLog("Step X: No printers found on the bridge (will fallback to default routing).");
+      } else {
+        addLog(`Found ${printers.length} printer(s). Using printer: ${printers[0].id}`);
       }
-      addLog(`Found ${printers.length} printer(s). Selecting first: ${printers[0].id}`);
 
-      addLog("Step 4: Building ESC/POS payload matching dummy data...");
-      const { escpos } = await import("@asithakonara/node-print-client");
+      addLog("Step 4: Building HTML payload matching dummy data...");
+      const htmlPayload = `
+        <div style="font-family: monospace; width: 300px; text-align: center;">
+          <h1>${dummyReceiptData.storeName}</h1>
+          <p>${dummyReceiptData.addressLine1}</p>
+          <hr/>
+          <p>Order: ${dummyReceiptData.orderNumber}</p>
+          <p>Total: $${dummyReceiptData.total.toFixed(2)}</p>
+        </div>
+      `;
       
-      const receiptData = escpos()
-        .align("center")
-        .bold(true)
-        .text(dummyReceiptData.storeName)
-        .bold(false)
-        .text(dummyReceiptData.addressLine1)
-        .line()
-        .align("left")
-        .text(`Order: ${dummyReceiptData.orderNumber}`)
-        .text(`Total: $${dummyReceiptData.total.toFixed(2)}`)
-        .line()
-        .align("center")
-        .text("THANK YOU!")
-        .cut()
-        .build();
-      
-      addLog("Step 5: ESC/POS Payload generated. Dispatching job...");
+      addLog("Step 5: HTML Payload generated. Dispatching job...");
       
       const response = await printerClient.print({
-        printer: printers[0].id,
-        type: "escpos",
-        data: receiptData,
+        printer: printers && printers.length > 0 ? printers[0].id : "receipt",
+        type: "html",
+        html: htmlPayload,
       });
 
       addLog(`Step 6: Job dispatched successfully. Response from printerClient: ${JSON.stringify(response)}`);
